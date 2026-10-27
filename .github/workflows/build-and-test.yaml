@@ -1,11 +1,35 @@
-name: HELLO
+name: Build and Test
 
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
 
 jobs:
-  hello:
+  build-and-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ConsoleApp
     steps:
-      - run: echo "GitHub Actions is running"
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          cache: true
+          cache-dependency-path: ConsoleApp/**/*.csproj
+
+      - name: Restore
+        run: dotnet restore ConsoleApp.sln
+
+      - name: Build
+        run: dotnet build ConsoleApp.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test ConsoleApp.sln --configuration Release --no-build --verbosity normal
