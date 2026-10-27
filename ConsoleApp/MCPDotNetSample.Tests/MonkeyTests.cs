@@ -32,7 +32,7 @@ public class MonkeyTests
     {
         ResponseModel model = new();
 
-        Assert.Equal(99, model.Status);
+        Assert.Equal(0, model.Status);
         Assert.Null(model.Data);
         Assert.Null(model.Message);
     }
