@@ -33,3 +33,40 @@ jobs:
 
       - name: Test
         run: dotnet test ConsoleApp.sln --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish MCPDotNetSample/MCPDotNetSample.csproj --configuration Release --runtime win-x64 --self-contained true --output ./publish
+
+      - name: Upload published app
+        uses: actions/upload-artifact@v4
+        with:
+          name: MCPDotNetSample-win-x64
+          path: ConsoleApp/publish
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, windows]
+    env:
+      DEPLOY_DIR: C:\Apps\MCPDotNetSample
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download published app
+        uses: actions/download-artifact@v4
+        with:
+          name: MCPDotNetSample-win-x64
+          path: ${{ runner.temp }}\publish
+
+      - name: Deploy to VM folder
+        shell: powershell
+        run: |
+          robocopy "${{ runner.temp }}\publish" "$env:DEPLOY_DIR" /MIR /NFL /NDL /NP
+          if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
+          exit 0
+
+      - name: Smoke test
+        shell: powershell
+        run: ./scripts/smoke-test.ps1 -ExePath "$env:DEPLOY_DIR\MCPDotNetSample.exe"
